@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Josh E. Deus | Aspiring IT Professional Portfolio</title>
+  <meta name="description" content="Josh E. Deus — Aspiring IT Professional based in Manila. Building systems that solve real problems, from networks to web applications." />
+  <meta name="author" content="Josh E. Deus" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#f0ede8" />
+  <link rel="icon" type="image/png" href="Logo2.png" />
+  <link rel="canonical" href="./" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Josh E. Deus | Aspiring IT Professional Portfolio" />
+  <meta property="og:description" content="Aspiring IT Professional based in Manila. Building practical systems from network setups to full web applications." />
+  <meta property="og:url" content="./" />
+  <meta property="og:image" content="Logo2.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Josh E. Deus | Aspiring IT Professional Portfolio" />
+  <meta name="twitter:description" content="Aspiring IT Professional based in Manila. Building practical systems from network setups to full web applications." />
+  <meta name="twitter:image" content="Logo2.png" />
+  <!-- Preconnect to Google Fonts for faster loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Restore theme before render to prevent flash.
+       Priority: 1) saved preference, 2) OS dark mode, 3) default light -->
+  <script>
+    {
+      const saved = localStorage.getItem('theme');
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+      } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <!-- Custom cursor -->
+  <div class="cursor" id="cursor"></div>
+
+  <!-- Intro overlay — dismissed by click or keypress -->
+  <div class="intro-overlay" id="introOverlay">
+    <div class="intro-name">Josh E. Deus</div>
+    <span class="intro-hint">Press any key or click to enter</span>
+  </div>
+
+  <!-- Outer frame border -->
+  <div class="frame"></div>
+
+  <!-- Grain texture canvas -->
+  <canvas id="grain"></canvas>
+
+  <!-- Soft radial blob -->
+  <div class="blob"></div>
+
+  <!-- ══════════════════════════════
+       SIDEBAR
+  ══════════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- Name & subtitle -->
+    <h1 class="sidebar-name">Josh E. Deus</h1>
+    <div class="sidebar-subtitle">Aspiring IT Professional</div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav" aria-label="Primary">
+      <button class="nav-link" id="link-projects" aria-expanded="false" aria-controls="panel-projects">
+        Projects <span class="nav-arrow" aria-hidden="true">→</span>
+      </button>
+      <button class="nav-link" id="link-info" aria-expanded="false" aria-controls="panel-info">
+        Info <span class="nav-arrow" aria-hidden="true">→</span>
+      </button>
+      <button class="nav-link" id="link-contact" aria-expanded="false" aria-controls="panel-contact">
+        Contact <span class="nav-arrow" aria-hidden="true">→</span>
+      </button>
+    </nav>
+
+    <!-- Theme toggle + year -->
+    <div class="sidebar-bottom">
+      <div class="toggle-row">
+        <!-- aria-live lets screen readers announce the theme change without
+             the user having to navigate away and back -->
+        <span class="toggle-text" id="themeLabel" aria-live="polite">Light</span>
+        <!-- role="switch" + aria-checked gives the toggle proper semantics.
+             Using a <button> means Enter and Space both work natively. -->
+        <button
+          class="toggle-track"
+          id="toggleTrack"
+          role="switch"
+          aria-checked="false"
+          aria-label="Toggle dark mode"
+        >
+          <div class="toggle-thumb"></div>
+        </button>
+      </div>
+      <div class="year-tag">© 2026</div>
+    </div>
+
+  </aside>
+
+  <!-- ══════════════════════════════
+       MAIN CONTENT AREA
+  ══════════════════════════════ -->
+  <main class="main">
+    <section class="bio" aria-labelledby="bio-heading">
+      <h2 class="sr-only" id="bio-heading">Personal Motto</h2>
+      <p>
+        "The way to get started<br>
+        is to quit talking<br>
+        and begin doing."<br>
+      </p>
+      <span class="bio-author">— Walt Disney</span>
+      <span class="bio-status">Based in Manila · Open to Work</span>
+      <div class="bio-cta-row">
+        <a href="Deus_Resume.pdf" target="_blank" rel="noopener noreferrer" class="bio-cta">View Resume</a>
+        <a href="#contact" class="bio-cta">Email Me</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ══════════════════════════════
+       PROJECTS PANEL
+  ══════════════════════════════ -->
+  <div class="content-panel" id="panel-projects" role="dialog" aria-modal="true" aria-labelledby="panel-projects-title" aria-hidden="true">
+    <div class="panel-header">
+      <h2 class="panel-heading" id="panel-projects-title">Selected Work</h2>
+      <div class="panel-actions">
+        <button class="panel-close" data-close>Close <span aria-hidden="true">✕</span></button>
+        <span class="panel-shortcut-hint" aria-hidden="true">Esc to close</span>
+      </div>
+    </div>
+    <ul class="project-list">
+      <li class="project-item">
+        <a href="https://github.com/JOsh12004" target="_blank" rel="noopener noreferrer" class="project-link">
+          <div class="project-main">
+            <span class="project-title-row">
+              <span class="project-name">Record Keeping Management System with OCR Integration</span>
+              <span class="project-badge">In Progress</span>
+            </span>
+            <span class="project-meta">Role: Full-Stack Developer · Stack: JavaScript, Node.js, OCR</span>
+            <span class="project-impact">Built an OCR-assisted workflow that reduced manual data encoding and retrieval time for record processing.</span>
+          </div>
+          <span class="project-sub">Web · 2026</span>
+        </a>
+      </li>
+      <li class="project-item">
+        <a href="https://github.com/JOsh12004/tictactoe" target="_blank" rel="noopener noreferrer" class="project-link">
+          <div class="project-main">
+            <span class="project-name">Simple Tic Tac Toe Game</span>
+            <span class="project-meta">Role: Developer · Stack: C</span>
+            <span class="project-impact">Implemented turn validation and win-state logic to deliver a complete command-line game loop.</span>
+          </div>
+          <span class="project-sub">Command Line Game · 2022</span>
+        </a>
+      </li>
+      <li class="project-item">
+        <a href="https://github.com/JOsh12004/atmsim" target="_blank" rel="noopener noreferrer" class="project-link">
+          <div class="project-main">
+            <span class="project-name">ATM Simulation System</span>
+            <span class="project-meta">Role: Developer · Stack: C++, File Handling</span>
+            <span class="project-impact">Modeled real ATM transaction flows including authentication, balance checks, and withdrawal handling.</span>
+          </div>
+          <span class="project-sub">ATM Simulator · 2023</span>
+        </a>
+      </li>
+      <li class="project-item">
+        <a href="https://github.com/JOsh12004/Student-Information-System" target="_blank" rel="noopener noreferrer" class="project-link">
+          <div class="project-main">
+            <span class="project-name">Student Information System</span>
+            <span class="project-meta">Role: Desktop App Developer · Stack: Java, MySQL</span>
+            <span class="project-impact">Created CRUD-based student records with structured data management for faster enrollment updates.</span>
+          </div>
+          <span class="project-sub">Desktop App · 2024</span>
+        </a>
+      </li>
+      <li class="project-item">
+        <a href="https://github.com/JOsh12004/E-Commerce-Website" target="_blank" rel="noopener noreferrer" class="project-link">
+          <div class="project-main">
+            <span class="project-name">Simple E-Commerce Website</span>
+            <span class="project-meta">Role: Frontend Developer · Stack: HTML, CSS, JavaScript</span>
+            <span class="project-impact">Built a product browsing and cart-ready interface focused on clean layout and responsive behavior.</span>
+          </div>
+          <span class="project-sub">Web · 2024</span>
+        </a>
+      </li>
+      <li class="project-item project-item-static">
+        <div class="project-link project-link-static" aria-disabled="true">
+          <div class="project-main">
+            <span class="project-name">LAN Network Configuration</span>
+            <span class="project-meta">Role: Network Administrator · Stack: Networking, TCP/IP, DHCP</span>
+            <span class="project-impact">Designed and configured a functional local area network with proper routing, security, and device management protocols.</span>
+          </div>
+          <span class="project-sub">Networking · 2025</span>
+        </div>
+      </li>
+      <li class="project-item project-item-static">
+        <div class="project-link project-link-static" aria-disabled="true">
+          <div class="project-main">
+            <span class="project-name">Cybersecurity Implementation: File Encryption & RBAC</span>
+            <span class="project-meta">Role: Security Developer · Stack: Encryption, Access Control, Python</span>
+            <span class="project-impact">Implemented role-based access control and file-level encryption to secure sensitive data with granular permission management.</span>
+          </div>
+          <span class="project-sub">Security · 2025</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════
+       INFO PANEL
+  ══════════════════════════════ -->
+  <div class="content-panel" id="panel-info" role="dialog" aria-modal="true" aria-labelledby="panel-info-title" aria-hidden="true">
+    <div class="panel-header">
+      <h2 class="panel-heading" id="panel-info-title">About</h2>
+      <div class="panel-actions">
+        <button class="panel-close" data-close>Close <span aria-hidden="true">✕</span></button>
+        <span class="panel-shortcut-hint" aria-hidden="true">Esc to close</span>
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="info-section">
+        <h3>Background</h3>
+        <p>Aspiring IT Professional. Based in Manila. Building systems that solve real problems — from networks to web applications.</p>
+      </div>
+      <div class="info-section">
+        <h3>Approach</h3>
+        <p>I focus on building systems that work. Whether it's a secure backend, a web application, or a configured network — I care about getting the details right.</p>
+      </div>
+      <div class="info-section">
+        <h3>Education</h3>
+        <p>Technological University of the Philippines Manila — Bachelor of Science in Information Technology (2022–Present).</p>
+      </div>
+      <div class="info-section">
+        <h3>Capabilities</h3>
+        <ul class="skills-list">
+          <li class="skill-tag">C</li>
+          <li class="skill-tag">C++</li>
+          <li class="skill-tag">Python</li>
+          <li class="skill-tag">JavaScript</li>
+          <li class="skill-tag">Node.js</li>
+          <li class="skill-tag">Django</li>
+          <li class="skill-tag">Figma</li>
+          <li class="skill-tag">HTML</li>
+          <li class="skill-tag">CSS</li>
+          <li class="skill-tag">MySQL</li>
+          <li class="skill-tag">PostgreSQL</li>
+          <li class="skill-tag">Power BI</li>
+          <li class="skill-tag">Networking</li>
+        </ul>
+      </div>
+      <div class="info-section">
+        <h3>Currently</h3>
+        <p class="availability-line">
+          <span class="availability-dot" aria-hidden="true"></span>
+          <span>Actively seeking full-time opportunities.</span>
+        </p>
+        <p>Response time: 24–48 hours.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════
+       CONTACT PANEL
+  ══════════════════════════════ -->
+  <div class="content-panel" id="panel-contact" role="dialog" aria-modal="true" aria-labelledby="panel-contact-title" aria-hidden="true">
+    <div class="panel-header">
+      <h2 class="panel-heading" id="panel-contact-title">Get in Touch</h2>
+      <div class="panel-actions">
+        <button class="panel-close" data-close>Close <span aria-hidden="true">✕</span></button>
+        <span class="panel-shortcut-hint" aria-hidden="true">Esc to close</span>
+      </div>
+    </div>
+    <ul class="contact-list">
+      <li class="contact-item">
+        <div class="contact-row contact-row-email">
+          <span class="contact-platform">Email</span>
+          <a href="#contact" id="emailLink" class="contact-handle contact-mail-link" data-user="jsshdeus" data-domain="gmail.com">jsshdeus [at] gmail [dot] com</a>
+          <button type="button" class="copy-email-btn" id="copyEmailBtn" data-user="jsshdeus" data-domain="gmail.com" aria-label="Copy email address">Copy</button>
+        </div>
+      </li>
+      <li class="contact-item">
+        <div class="contact-row contact-row-phone">
+          <span class="contact-platform">Phone</span>
+          <a href="tel:+639366967362" class="contact-handle contact-phone-link">+63 9366967362</a>
+          <button type="button" class="copy-email-btn copy-phone-btn" id="copyPhoneBtn" data-phone="+639366967362" aria-label="Copy phone number">Copy</button>
+        </div>
+      </li>
+      <li class="contact-item">
+        <a href="https://github.com/JOsh12004" target="_blank" rel="noopener noreferrer" class="contact-row">
+          <span class="contact-platform">GitHub</span>
+          <span class="contact-handle">github.com/JOsh12004</span>
+          <span class="contact-arrow" aria-hidden="true">↗</span>
+        </a>
+      </li>
+      <li class="contact-item">
+        <a href="https://linkedin.com/in/joshdeus" target="_blank" rel="noopener noreferrer" class="contact-row">
+          <span class="contact-platform">LinkedIn</span>
+          <span class="contact-handle">linkedin.com/in/joshdeus</span>
+          <span class="contact-arrow" aria-hidden="true">↗</span>
+        </a>
+      </li>
+      <li class="contact-item">
+        <a href="Deus_Resume.pdf" type="application/pdf" target="_blank" rel="noopener noreferrer" class="contact-row">
+          <span class="contact-platform">Resume</span>
+          <span class="contact-handle">Deus_Resume.pdf</span>
+          <span class="contact-arrow" aria-hidden="true">↗</span>
+        </a>
+      </li>
+    </ul>
+    <span class="sr-only" id="copyContactStatus" aria-live="polite"></span>
+  </div>
+
+  <button type="button" class="panel-back-to-top" id="panelBackToTop" aria-label="Back to top" aria-hidden="true">↑ Top</button>
+
+  <script src="script.js"></script>
+  <div class="copy-toast" id="copyToast" aria-hidden="true"></div>
+</body>
+</html>
