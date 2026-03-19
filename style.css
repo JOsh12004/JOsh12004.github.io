@@ -800,6 +800,7 @@ html, body {
   left: 50%;
   bottom: 22px;
   transform: translate(-50%, 10px);
+  background: var(--bg);
   background: color-mix(in srgb, var(--bg) 80%, var(--fg) 20%);
   color: var(--fg);
   border: 1px solid var(--border);
@@ -811,7 +812,7 @@ html, body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 110;
+  z-index: 95;
 }
 
 .copy-toast.visible {
@@ -824,6 +825,7 @@ html, body {
   right: 22px;
   bottom: 22px;
   border: 1px solid var(--border);
+  background: var(--bg);
   background: color-mix(in srgb, var(--bg) 82%, var(--fg) 18%);
   color: var(--fg);
   font: inherit;
@@ -1047,8 +1049,3 @@ html, body {
   }
 }
 
-@media (min-width: 921px) {
-  .panel-back-to-top {
-    display: none;
-  }
-}

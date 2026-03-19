@@ -358,10 +358,6 @@ let current = null;
 let pendingPanelFromHash = null;
 const panelBackToTop = document.getElementById('panelBackToTop');
 
-function isMobileViewport() {
-  return window.matchMedia('(max-width: 920px)').matches;
-}
-
 function syncDocumentTitle(name) {
   if (!name || !PANEL_TITLES[name]) {
     document.title = BASE_DOCUMENT_TITLE;
@@ -374,7 +370,7 @@ function updateBackToTopVisibility() {
   if (!panelBackToTop) return;
 
   const activePanel = current ? panels[current] : null;
-  const visible = !!(activePanel && isMobileViewport() && activePanel.scrollTop > 200);
+  const visible = !!(activePanel && activePanel.scrollTop > 200);
   panelBackToTop.classList.toggle('visible', visible);
   panelBackToTop.setAttribute('aria-hidden', visible ? 'false' : 'true');
 }
