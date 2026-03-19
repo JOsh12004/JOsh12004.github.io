@@ -313,13 +313,123 @@ const PERF = {
 })();
 
 /* ══════════════════════════════
+   PROJECT CARD REVEAL ON SCROLL
+   Cards reveal as they enter the viewport of the projects panel.
+══════════════════════════════ */
+(function () {
+  const projectsPanel = document.getElementById('panel-projects');
+  const projectItems = Array.from(document.querySelectorAll('#panel-projects .project-item'));
+  if (!projectsPanel || projectItems.length === 0) return;
+
+  projectItems.forEach((item, index) => {
+    item.classList.add('reveal-ready');
+    item.style.setProperty('--reveal-delay', `${Math.min(index * 36, 180)}ms`);
+  });
+
+  if (PERF.reducedMotion || typeof IntersectionObserver === 'undefined') {
+    projectItems.forEach(item => item.classList.add('revealed'));
+    return;
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('revealed');
+      observer.unobserve(entry.target);
+    });
+  }, {
+    root: projectsPanel,
+    threshold: 0.2,
+    rootMargin: '0px 0px -10% 0px',
+  });
+
+  projectItems.forEach(item => observer.observe(item));
+})();
+
+/* ══════════════════════════════
+   MAGNETIC BUTTONS
+   Subtle attraction effect for interactive controls.
+══════════════════════════════ */
+(function () {
+  const canHover = window.matchMedia('(pointer: fine) and (hover: hover)').matches;
+  if (!canHover || PERF.reducedMotion) return;
+
+  const magneticTargets = document.querySelectorAll(
+    '.nav-link, .panel-close, .toggle-track, .bio-cta, .copy-email-btn, .panel-back-to-top'
+  );
+  if (!magneticTargets.length) return;
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  magneticTargets.forEach(target => {
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let frame = null;
+    target.classList.add('magnetic-target');
+
+    function applyTranslate() {
+      target.style.translate = `${currentX.toFixed(2)}px ${currentY.toFixed(2)}px`;
+    }
+
+    function animate() {
+      currentX += (targetX - currentX) * 0.18;
+      currentY += (targetY - currentY) * 0.18;
+      applyTranslate();
+
+      const moving = Math.abs(targetX - currentX) > 0.08 || Math.abs(targetY - currentY) > 0.08;
+      if (!moving) {
+        currentX = targetX;
+        currentY = targetY;
+        applyTranslate();
+        frame = null;
+        return;
+      }
+
+      frame = requestAnimationFrame(animate);
+    }
+
+    function queueAnimate() {
+      if (frame !== null || document.hidden) return;
+      frame = requestAnimationFrame(animate);
+    }
+
+    function reset() {
+      targetX = 0;
+      targetY = 0;
+      queueAnimate();
+    }
+
+    target.addEventListener('pointermove', e => {
+      const rect = target.getBoundingClientRect();
+      const relX = e.clientX - (rect.left + rect.width / 2);
+      const relY = e.clientY - (rect.top + rect.height / 2);
+
+      targetX = clamp(relX * 0.22, -10, 10);
+      targetY = clamp(relY * 0.22, -10, 10);
+      queueAnimate();
+    });
+
+    target.addEventListener('pointerleave', reset);
+    target.addEventListener('pointercancel', reset);
+    target.addEventListener('blur', reset);
+  });
+})();
+
+/* ══════════════════════════════
    THEME TOGGLE
 ══════════════════════════════ */
 const html  = document.documentElement;
 const track = document.getElementById('toggleTrack');
 const label = document.getElementById('themeLabel');
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+const themeWipe = document.getElementById('themeWipe');
 const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+const THEME_WIPE_DURATION_MS = 760;
+const THEME_WIPE_SWITCH_MS = 300;
+let themeWipeSwitchTimer = null;
+let themeWipeCleanupTimer = null;
 
 function hasStoredThemePreference() {
   return localStorage.getItem('theme') !== null;
@@ -355,7 +465,7 @@ window.addEventListener('load', () => {
   }, 1200); // slightly after longest animation delay (0.78s + 0.8s duration)
 });
 
-function setTheme(dark) {
+function applyThemeState(dark) {
   const theme = dark ? 'dark' : 'light';
   html.setAttribute('data-theme', theme);
   localStorage.setItem('theme', theme);
@@ -366,9 +476,48 @@ function setTheme(dark) {
   syncThemeColorMeta();
 }
 
+function setTheme(dark, options = {}) {
+  const { animated = false } = options;
+  const targetTheme = dark ? 'dark' : 'light';
+
+  if (html.dataset.theme === targetTheme && !(themeWipe && themeWipe.classList.contains('active'))) {
+    applyThemeState(dark);
+    return;
+  }
+
+  if (!animated || !themeWipe || PERF.reducedMotion) {
+    applyThemeState(dark);
+    return;
+  }
+
+  if (themeWipeSwitchTimer) {
+    clearTimeout(themeWipeSwitchTimer);
+    themeWipeSwitchTimer = null;
+  }
+  if (themeWipeCleanupTimer) {
+    clearTimeout(themeWipeCleanupTimer);
+    themeWipeCleanupTimer = null;
+  }
+
+  themeWipe.style.setProperty('--wipe-color', dark ? '#0e0d0c' : '#f0ede8');
+  themeWipe.classList.remove('active');
+  void themeWipe.offsetWidth;
+  themeWipe.classList.add('active');
+
+  themeWipeSwitchTimer = setTimeout(() => {
+    applyThemeState(dark);
+    themeWipeSwitchTimer = null;
+  }, THEME_WIPE_SWITCH_MS);
+
+  themeWipeCleanupTimer = setTimeout(() => {
+    themeWipe.classList.remove('active');
+    themeWipeCleanupTimer = null;
+  }, THEME_WIPE_DURATION_MS);
+}
+
 // The toggle is now a <button role="switch"> so click, Enter, and
 // Space all fire the click event natively — no extra key handling needed
-track.addEventListener('click', () => setTheme(html.dataset.theme !== 'dark'));
+track.addEventListener('click', () => setTheme(html.dataset.theme !== 'dark', { animated: true }));
 
 function syncThemeFromSystem(event) {
   if (hasStoredThemePreference()) {
