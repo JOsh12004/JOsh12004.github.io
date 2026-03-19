@@ -349,6 +349,12 @@ const PANEL_TITLES = {
 };
 const BASE_DOCUMENT_TITLE = document.title;
 
+// Keep closed panels fully out of keyboard navigation.
+panelEntries.forEach(panel => {
+  panel.setAttribute('inert', '');
+  panel.setAttribute('aria-hidden', 'true');
+});
+
 const backgroundRegions = [
   // Keep sidebar interactive so users can switch panels directly.
   document.querySelector('.main'),
@@ -371,8 +377,13 @@ function updateBackToTopVisibility() {
 
   const activePanel = current ? panels[current] : null;
   const visible = !!(activePanel && activePanel.scrollTop > 200);
+
+  if (!visible && document.activeElement === panelBackToTop) {
+    panelBackToTop.blur();
+  }
+
   panelBackToTop.classList.toggle('visible', visible);
-  panelBackToTop.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  panelBackToTop.tabIndex = visible ? 0 : -1;
 }
 
 function isIntroActive() {
@@ -434,6 +445,7 @@ function openPanel(name, options = {}) {
     panels[current].classList.remove('active');
     panels[current].classList.remove('panel-scroll-hint');
     panels[current].setAttribute('aria-hidden', 'true');
+    panels[current].setAttribute('inert', '');
     navLinks[current].classList.remove('active');
     navLinks[current].setAttribute('aria-expanded', 'false');
   }
@@ -443,6 +455,7 @@ function openPanel(name, options = {}) {
     panels[name].classList.remove('active');
     panels[name].classList.remove('panel-scroll-hint');
     panels[name].setAttribute('aria-hidden', 'true');
+    panels[name].setAttribute('inert', '');
     navLinks[name].classList.remove('active');
     navLinks[name].setAttribute('aria-expanded', 'false');
     setNavCurrent(null);
@@ -457,6 +470,7 @@ function openPanel(name, options = {}) {
   // Open new panel
   panels[name].classList.add('active');
   panels[name].setAttribute('aria-hidden', 'false');
+  panels[name].removeAttribute('inert');
   navLinks[name].classList.add('active');
   navLinks[name].setAttribute('aria-expanded', 'true');
   setNavCurrent(name);
@@ -484,6 +498,7 @@ function closeAll(options = {}) {
     panels[k].classList.remove('active');
     panels[k].classList.remove('panel-scroll-hint');
     panels[k].setAttribute('aria-hidden', 'true');
+    panels[k].setAttribute('inert', '');
     navLinks[k].classList.remove('active');
     navLinks[k].setAttribute('aria-expanded', 'false');
     navLinks[k].removeAttribute('aria-current');
@@ -542,6 +557,29 @@ document.querySelectorAll('.bio-cta[href^="#"]').forEach(link => {
     }, 110);
   });
 });
+
+// Resume CTA feedback: show a brief opening state while the new tab starts loading.
+(function () {
+  const resumeCta = document.getElementById('resumeCta');
+  if (!resumeCta) return;
+
+  let resetTimer = null;
+  const defaultLabel = resumeCta.textContent;
+
+  resumeCta.addEventListener('click', () => {
+    resumeCta.classList.add('is-opening');
+    resumeCta.setAttribute('aria-busy', 'true');
+    resumeCta.textContent = 'Opening...';
+
+    if (resetTimer) clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => {
+      resumeCta.classList.remove('is-opening');
+      resumeCta.setAttribute('aria-busy', 'false');
+      resumeCta.textContent = defaultLabel;
+      resetTimer = null;
+    }, 2200);
+  });
+})();
 
 panelEntries.forEach(panel => {
   panel.addEventListener('scroll', () => {
@@ -617,8 +655,16 @@ syncPanelWithHash();
   const copyPhoneBtn = document.getElementById('copyPhoneBtn');
   const emailLink = document.getElementById('emailLink');
   const status = document.getElementById('copyContactStatus');
-  const toast = document.getElementById('copyToast');
+  let toast = document.getElementById('copyToast');
   if (!copyEmailBtn && !copyPhoneBtn) return;
+
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.className = 'copy-toast';
+    toast.id = 'copyToast';
+    toast.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(toast);
+  }
 
   let toastTimer = null;
 

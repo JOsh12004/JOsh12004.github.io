@@ -118,7 +118,7 @@
       <span class="bio-author">— Walt Disney</span>
       <span class="bio-status">Based in Manila · Open to Work</span>
       <div class="bio-cta-row">
-        <a href="Deus_Resume.pdf" target="_blank" rel="noopener noreferrer" class="bio-cta">View Resume</a>
+        <a href="Deus_Resume.pdf" target="_blank" rel="noopener noreferrer" class="bio-cta resume-cta" id="resumeCta">View Resume</a>
         <a href="#contact" class="bio-cta">Email Me</a>
       </div>
     </section>
@@ -192,7 +192,10 @@
       <li class="project-item project-item-static">
         <div class="project-link project-link-static" aria-disabled="true">
           <div class="project-main">
-            <span class="project-name">LAN Network Configuration</span>
+            <span class="project-title-row">
+              <span class="project-name">LAN Network Configuration</span>
+              <span class="project-badge project-badge-muted">No Repo</span>
+            </span>
             <span class="project-meta">Role: Network Administrator · Stack: Networking, TCP/IP, DHCP</span>
             <span class="project-impact">Designed and configured a functional local area network with proper routing, security, and device management protocols.</span>
           </div>
@@ -202,7 +205,10 @@
       <li class="project-item project-item-static">
         <div class="project-link project-link-static" aria-disabled="true">
           <div class="project-main">
-            <span class="project-name">Cybersecurity Implementation: File Encryption & RBAC</span>
+            <span class="project-title-row">
+              <span class="project-name">Cybersecurity Implementation: File Encryption & RBAC</span>
+              <span class="project-badge project-badge-muted">No Repo</span>
+            </span>
             <span class="project-meta">Role: Security Developer · Stack: Encryption, Access Control, Python</span>
             <span class="project-impact">Implemented role-based access control and file-level encryption to secure sensitive data with granular permission management.</span>
           </div>
@@ -316,9 +322,9 @@
     <span class="sr-only" id="copyContactStatus" aria-live="polite"></span>
   </div>
 
-  <button type="button" class="panel-back-to-top" id="panelBackToTop" aria-label="Back to top" aria-hidden="true">↑ Top</button>
+  <button type="button" class="panel-back-to-top" id="panelBackToTop" aria-label="Back to top" tabindex="-1">↑ Top</button>
 
-  <script src="script.js"></script>
   <div class="copy-toast" id="copyToast" aria-hidden="true"></div>
+  <script src="script.js"></script>
 </body>
 </html>
