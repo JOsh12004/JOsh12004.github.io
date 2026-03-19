@@ -36,6 +36,87 @@ const PERF = {
 };
 
 /* ══════════════════════════════
+   MOUSE-REACTIVE BLOB
+   Gently lerps a soft offset toward cursor position.
+   Disabled for reduced-motion users.
+══════════════════════════════ */
+(function () {
+  const blob = document.querySelector('.blob');
+  if (!blob || PERF.reducedMotion) return;
+
+  let targetX = 0;
+  let targetY = 0;
+  let currentX = 0;
+  let currentY = 0;
+  let frame = null;
+  let maxOffsetX = 0;
+  let maxOffsetY = 0;
+  const lerp = PERF.lowPower ? 0.14 : 0.09;
+
+  function computeBounds() {
+    const vw = window.innerWidth || 1;
+    const vh = window.innerHeight || 1;
+    maxOffsetX = Math.min(72, vw * (PERF.lowPower ? 0.028 : 0.042));
+    maxOffsetY = Math.min(64, vh * (PERF.lowPower ? 0.024 : 0.036));
+  }
+
+  function applyOffset() {
+    blob.style.setProperty('--blob-offset-x', `${currentX.toFixed(2)}px`);
+    blob.style.setProperty('--blob-offset-y', `${currentY.toFixed(2)}px`);
+  }
+
+  function step() {
+    currentX += (targetX - currentX) * lerp;
+    currentY += (targetY - currentY) * lerp;
+    applyOffset();
+
+    const isMoving = Math.abs(targetX - currentX) > 0.08 || Math.abs(targetY - currentY) > 0.08;
+    if (isMoving) {
+      frame = requestAnimationFrame(step);
+      return;
+    }
+
+    currentX = targetX;
+    currentY = targetY;
+    applyOffset();
+    frame = null;
+  }
+
+  function queueStep() {
+    if (frame !== null || document.hidden) return;
+    frame = requestAnimationFrame(step);
+  }
+
+  function onMouseMove(e) {
+    const nx = (e.clientX / window.innerWidth) - 0.5;
+    const ny = (e.clientY / window.innerHeight) - 0.5;
+    targetX = nx * maxOffsetX * 2;
+    targetY = ny * maxOffsetY * 2;
+    queueStep();
+  }
+
+  function recenter() {
+    targetX = 0;
+    targetY = 0;
+    queueStep();
+  }
+
+  computeBounds();
+  applyOffset();
+
+  window.addEventListener('resize', computeBounds);
+  window.addEventListener('mousemove', onMouseMove, { passive: true });
+  document.addEventListener('mouseout', e => {
+    if (e.relatedTarget) return;
+    recenter();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    queueStep();
+  });
+})();
+
+/* ══════════════════════════════
    GRAIN TEXTURE
    Drawn once at a fixed resolution and never redrawn.
    CSS stretches the canvas to fill the viewport — imperceptible

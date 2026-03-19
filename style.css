@@ -140,6 +140,8 @@ html, body {
    BLOB
 ══════════════════════════════ */
 .blob {
+  --blob-offset-x: 0px;
+  --blob-offset-y: 0px;
   position: fixed;
   top: 50%;
   left: calc(16px + var(--sidebar-w) + (100vw - 16px - var(--sidebar-w) - 16px) / 2);
@@ -148,8 +150,9 @@ html, body {
   background: radial-gradient(ellipse at center,
     #b0aa9e 0%, #c8c3ba 28%, transparent 70%);
   filter: blur(2px);
+  transform: translate3d(calc(-50% + var(--blob-offset-x)), calc(-50% + var(--blob-offset-y)), 0);
   z-index: 0;
-  animation: blobDrift 12s ease-in-out infinite;
+  animation: blobPulse 8s ease-in-out infinite;
   will-change: transform;
 }
 [data-theme="dark"] .blob {
@@ -157,12 +160,9 @@ html, body {
     #3a3630 0%, #2a2620 28%, transparent 70%);
 }
 
-@keyframes blobDrift {
-  0%   { transform: translate(-50%, -50%); }
-  25%  { transform: translate(-62%, -42%); }
-  50%  { transform: translate(-40%, -60%); }
-  75%  { transform: translate(-58%, -44%); }
-  100% { transform: translate(-50%, -50%); }
+@keyframes blobPulse {
+  0%, 100% { filter: blur(2px); opacity: 1; }
+  50%      { filter: blur(2.8px); opacity: 0.94; }
 }
 
 /* ══════════════════════════════
@@ -215,7 +215,7 @@ html, body {
    Removes all decorative animations and transitions for users
    who have requested reduced motion at the OS level.
    — Intro name and hint appear immediately, no animation.
-   — Blob stops drifting.
+  — Blob stops pulsing and cursor reaction.
    — Sidebar elements appear immediately.
    — Panel opens/closes with opacity only, no transform slide.
    — JS skips the particle trail entirely (see script.js).
