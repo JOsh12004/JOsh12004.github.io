@@ -452,7 +452,7 @@ html, body {
 [data-theme="dark"] .toggle-thumb { transform: translateX(18px); background: var(--fg); }
 
 .year-tag {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--fg-muted);
   margin-top: 14px;
@@ -646,7 +646,7 @@ html, body {
 }
 .panel-close:hover { color: var(--fg); }
 .panel-shortcut-hint {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--fg-muted);
@@ -1074,7 +1074,7 @@ html, body {
   }
 
   .panel-shortcut-hint {
-    font-size: 8px;
+    font-size: 10px;
     letter-spacing: 0.06em;
   }
 

@@ -7,6 +7,7 @@
   <meta name="description" content="Josh E. Deus — Aspiring IT Professional based in Manila. Building systems that solve real problems, from networks to web applications." />
   <meta name="author" content="Josh E. Deus" />
   <meta name="robots" content="index, follow" />
+  <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#f0ede8" />
   <link rel="icon" type="image/png" href="Logo2.png" />
   <link rel="canonical" href="https://josh12004.github.io/" />
@@ -121,8 +122,8 @@
   <div class="cursor" id="cursor" aria-hidden="true"></div>
 
   <!-- Intro overlay — dismissed by click or keypress -->
-  <div class="intro-overlay" id="introOverlay">
-    <div class="intro-name">Josh E. Deus</div>
+  <div class="intro-overlay" id="introOverlay" role="dialog" aria-modal="true" aria-labelledby="introOverlayTitle" tabindex="-1">
+    <div class="intro-name" id="introOverlayTitle">Josh E. Deus</div>
     <span class="intro-hint">Press any key or click to enter</span>
   </div>
 
@@ -272,7 +273,7 @@
         </a>
       </li>
       <li class="project-item project-item-static">
-        <div class="project-link project-link-static" aria-disabled="true">
+        <div class="project-link project-link-static">
           <div class="project-main">
             <span class="project-title-row">
               <span class="project-name">LAN Network Configuration</span>
@@ -285,7 +286,7 @@
         </div>
       </li>
       <li class="project-item project-item-static">
-        <div class="project-link project-link-static" aria-disabled="true">
+        <div class="project-link project-link-static">
           <div class="project-main">
             <span class="project-title-row">
               <span class="project-name">Cybersecurity Implementation: File Encryption & RBAC</span>

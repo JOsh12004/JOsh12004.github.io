@@ -275,11 +275,47 @@ const PERF = {
 (function () {
   const overlay = document.getElementById('introOverlay');
   if (!overlay) return; // Guard: overlay not found, exit gracefully
+
+  const introLockTargets = [
+    document.querySelector('.sidebar'),
+    document.querySelector('.main'),
+  ].filter(Boolean);
+  const introLockState = new Map();
+
+  function setIntroBackgroundLocked(locked) {
+    introLockTargets.forEach(el => {
+      if (locked) {
+        if (!introLockState.has(el)) {
+          introLockState.set(el, {
+            inert: el.hasAttribute('inert'),
+            ariaHidden: el.getAttribute('aria-hidden'),
+          });
+        }
+        el.setAttribute('inert', '');
+        el.setAttribute('aria-hidden', 'true');
+        return;
+      }
+
+      const prev = introLockState.get(el);
+      if (!prev) return;
+      if (!prev.inert) el.removeAttribute('inert');
+      if (prev.ariaHidden === null) {
+        el.removeAttribute('aria-hidden');
+      } else {
+        el.setAttribute('aria-hidden', prev.ariaHidden);
+      }
+      introLockState.delete(el);
+    });
+  }
+
+  setIntroBackgroundLocked(true);
+  overlay.focus();
   
   let dismissed = false;
 
   function removeOverlay() {
     if (!overlay.parentNode) return;
+    setIntroBackgroundLocked(false);
     overlay.remove();
     document.dispatchEvent(new CustomEvent('intro-dismissed'));
   }
@@ -308,6 +344,16 @@ const PERF = {
   // Any meaningful key dismisses — ignore bare modifier keys
   const IGNORE_KEYS = new Set(['Shift','Control','Alt','Meta','CapsLock','Dead']);
   document.addEventListener('keydown', function onKey(e) {
+    if (!overlay.parentNode) {
+      document.removeEventListener('keydown', onKey);
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      overlay.focus();
+    }
+
     if (IGNORE_KEYS.has(e.key)) return;
     document.removeEventListener('keydown', onKey);
     dismiss();
@@ -782,7 +828,7 @@ function closeAll(options = {}) {
 
 // Mobile gestures: swipe down (from top) or swipe left to close panel.
 (function () {
-  const mobilePanelQuery = window.matchMedia('(max-width: 900px)');
+  const mobilePanelQuery = window.matchMedia('(max-width: 920px)');
   let activeGesture = null;
 
   function resetGesture() {
@@ -1041,32 +1087,14 @@ syncPanelWithHash();
   async function copyText(value) {
     if (!value) return false;
 
+    if (!(navigator.clipboard && window.isSecureContext)) return false;
+
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(value);
-        return true;
-      }
+      await navigator.clipboard.writeText(value);
+      return true;
     } catch {
-      // Fall through to legacy copy path below.
+      return false;
     }
-
-    const ta = document.createElement('textarea');
-  ta.value = value;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    ta.style.pointerEvents = 'none';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-
-    let ok = false;
-    try {
-      ok = document.execCommand('copy');
-    } finally {
-      ta.remove();
-    }
-    return ok;
   }
 
   function getEmailAddress() {
@@ -1120,14 +1148,17 @@ syncPanelWithHash();
     button.addEventListener('click', async () => {
       const value = button.dataset[valueAttr] || '';
       const success = await copyText(value);
-      button.textContent = success ? 'Copied' : 'Failed';
+      const clipboardSupported = !!(navigator.clipboard && window.isSecureContext);
+      button.textContent = success ? 'Copied' : (clipboardSupported ? 'Failed' : 'Manual');
       button.classList.toggle('copied', success);
       if (status) {
         status.textContent = success
           ? `${label} copied to clipboard.`
-          : `Unable to copy ${label.toLowerCase()}.`;
+          : (clipboardSupported
+            ? `Unable to copy ${label.toLowerCase()}.`
+            : `Clipboard API unavailable. Copy ${label.toLowerCase()} manually.`);
       }
-      showToast(success ? `${label} copied` : 'Copy failed');
+      showToast(success ? `${label} copied` : (clipboardSupported ? 'Copy failed' : 'Copy manually'));
 
       setTimeout(() => {
         button.textContent = 'Copy';
