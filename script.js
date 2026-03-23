@@ -157,6 +157,125 @@ const PERF = {
 })();
 
 /* ══════════════════════════════
+   INTRO GRAIN DUST
+   70 particles drift across the intro overlay. Colors adapt to
+   the current theme so they're always visible. Fades out over
+   ~600ms on dismiss, then the canvas removes itself.
+   Skipped under prefers-reduced-motion.
+══════════════════════════════ */
+(function () {
+  if (PERF.reducedMotion) return;
+
+  const COUNT = PERF.lowPower ? 45 : 120;
+
+  // Light mode: dark-ish muted tones against #f0ede8
+  // Dark mode:  warm off-whites against #0e0d0c
+  const PALETTE_LIGHT = [
+    [100, 95,  88],
+    [120, 115, 108],
+    [80,  76,  70],
+    [140, 133, 124],
+    [90,  86,  80],
+    [110, 105, 98],
+  ];
+  const PALETTE_DARK = [
+    [230, 225, 215],
+    [210, 205, 195],
+    [190, 185, 175],
+    [245, 240, 230],
+    [200, 196, 188],
+    [255, 250, 240],
+  ];
+
+  const isDark = () => document.documentElement.dataset.theme === 'dark';
+
+  const canvas = document.createElement('canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  // z-index 101 — one above the intro overlay (z-index 100)
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:101;';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+
+  let W = 0, H = 0;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function makeParticle(spreadY) {
+    const palette = isDark() ? PALETTE_DARK : PALETTE_LIGHT;
+    const col = palette[Math.floor(Math.random() * palette.length)];
+    return {
+      x:      Math.random() * W,
+      y:      spreadY ? Math.random() * H : -4,
+      vy:     (0.12 + Math.random() * 0.10) * 0.67,
+      wobAmp: (0.3  + Math.random() * 0.7) * (Math.random() < 0.5 ? 1 : -1),
+      wobSpd: 0.008 + Math.random() * 0.012,
+      wobT:   Math.random() * Math.PI * 2,
+      twkSpd: PERF.lowPower ? 0 : (0.012 + Math.random() * 0.018),
+      twkT:   Math.random() * Math.PI * 2,
+      r:      0.4 + Math.random() * 1.0,
+      alpha:  0.18 + Math.random() * 0.55,
+      col,
+    };
+  }
+
+  const particles = Array.from({ length: COUNT }, () => makeParticle(true));
+
+  let fadingOut = false;
+  let fadeStart = 0;
+  const FADE_MS = 600;
+
+  function tick(ts) {
+    ctx.clearRect(0, 0, W, H);
+
+    let globalFade = 1;
+    if (fadingOut) {
+      globalFade = Math.max(0, 1 - (ts - fadeStart) / FADE_MS);
+      if (globalFade <= 0) {
+        canvas.remove();
+        return;
+      }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+
+      p.wobT += p.wobSpd;
+      p.twkT += p.twkSpd;
+      p.x    += Math.sin(p.wobT) * p.wobAmp * 0.4;
+      p.y    += p.vy;
+
+      if (p.y > H + 4) { particles[i] = makeParticle(false); continue; }
+      if (p.x < -4)      p.x = W + 4;
+      if (p.x > W + 4)   p.x = -4;
+
+      const twinkle = p.twkSpd > 0 ? Math.sin(p.twkT) * 0.08 : 0;
+      const a       = Math.max(0, (p.alpha + twinkle) * globalFade);
+
+      ctx.globalAlpha = a;
+      ctx.fillStyle   = `rgb(${p.col[0]},${p.col[1]},${p.col[2]})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+
+  document.addEventListener('intro-dismissed', () => {
+    fadingOut = true;
+    fadeStart = performance.now();
+  }, { once: true });
+})();
+
+/* ══════════════════════════════
   MOUSE TRAIL — GRAIN DUST
   Tiny warm-toned particles spawn along cursor movement,
   then drift and gently scatter before fading out.
