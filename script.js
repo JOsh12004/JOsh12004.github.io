@@ -166,6 +166,8 @@ const PERF = {
   // has requested reduced motion at the OS/browser level.
   if (PERF.reducedMotion) return;
   const canvas = document.createElement('canvas');
+  canvas.setAttribute('aria-hidden', 'true');
+  canvas.tabIndex = -1;
   const isDarkFn = () => document.documentElement.dataset.theme === 'dark';
   canvas.style.cssText = `position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;mix-blend-mode:${isDarkFn() ? 'screen' : 'multiply'};`;
   document.body.appendChild(canvas);
@@ -304,7 +306,7 @@ const PERF = {
   overlay.addEventListener('click', dismiss);
 
   // Any meaningful key dismisses — ignore bare modifier keys
-  const IGNORE_KEYS = new Set(['Shift','Control','Alt','Meta','CapsLock','Tab','Dead']);
+  const IGNORE_KEYS = new Set(['Shift','Control','Alt','Meta','CapsLock','Dead']);
   document.addEventListener('keydown', function onKey(e) {
     if (IGNORE_KEYS.has(e.key)) return;
     document.removeEventListener('keydown', onKey);
@@ -370,7 +372,8 @@ const PERF = {
     target.classList.add('magnetic-target');
 
     function applyTranslate() {
-      target.style.translate = `${currentX.toFixed(2)}px ${currentY.toFixed(2)}px`;
+      target.style.setProperty('--magnetic-x', `${currentX.toFixed(2)}px`);
+      target.style.setProperty('--magnetic-y', `${currentY.toFixed(2)}px`);
     }
 
     function animate() {
@@ -578,11 +581,33 @@ const PANEL_TITLES = {
   contact: 'Contact',
 };
 const BASE_DOCUMENT_TITLE = document.title;
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+function isFocusableVisible(el) {
+  if (!el) return false;
+  if (el.hidden) return false;
+  const style = window.getComputedStyle(el);
+  if (style.display === 'none' || style.visibility === 'hidden') return false;
+  return true;
+}
+
+function getPanelFocusableElements(panel) {
+  if (!panel) return [];
+  return Array.from(panel.querySelectorAll(FOCUSABLE_SELECTOR)).filter(isFocusableVisible);
+}
 
 // Keep closed panels fully out of keyboard navigation.
 panelEntries.forEach(panel => {
   panel.setAttribute('inert', '');
   panel.setAttribute('aria-hidden', 'true');
+  panel.tabIndex = -1;
 });
 
 const backgroundRegions = [
@@ -711,6 +736,17 @@ function openPanel(name, options = {}) {
   requestAnimationFrame(() => {
     updatePanelScrollHint(panels[name]);
     updateBackToTopVisibility();
+
+    // Move keyboard focus into the panel when it opens.
+    if (!panels[name].contains(document.activeElement)) {
+      const focusables = getPanelFocusableElements(panels[name]);
+      if (focusables.length > 0) {
+        focusables[0].focus();
+      } else {
+        panels[name].focus();
+      }
+    }
+
     // Recheck after the open transition settles to avoid stale dimensions.
     setTimeout(() => {
       updatePanelScrollHint(panels[name]);
@@ -743,6 +779,67 @@ function closeAll(options = {}) {
   // Return focus to whichever nav button opened the panel
   if (restoreFocus && returning) returning.focus();
 }
+
+// Mobile gestures: swipe down (from top) or swipe left to close panel.
+(function () {
+  const mobilePanelQuery = window.matchMedia('(max-width: 900px)');
+  let activeGesture = null;
+
+  function resetGesture() {
+    activeGesture = null;
+  }
+
+  function onTouchStart(panel, event) {
+    if (!mobilePanelQuery.matches || !current || panels[current] !== panel) return;
+    if (event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    activeGesture = {
+      panel,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startTime: performance.now(),
+      startScrollTop: panel.scrollTop,
+    };
+  }
+
+  function onTouchEnd(panel, event) {
+    if (!activeGesture || activeGesture.panel !== panel) return;
+    if (!mobilePanelQuery.matches || !current || panels[current] !== panel) {
+      resetGesture();
+      return;
+    }
+    if (event.changedTouches.length === 0) {
+      resetGesture();
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - activeGesture.startX;
+    const dy = touch.clientY - activeGesture.startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const elapsed = performance.now() - activeGesture.startTime;
+
+    const startedAtTop = activeGesture.startScrollTop <= 2;
+    const stillAtTop = panel.scrollTop <= 2;
+    const swipeDown = startedAtTop && stillAtTop && dy > 90 && absY > absX * 1.2;
+    const flickDown = startedAtTop && stillAtTop && dy > 52 && elapsed < 260 && absY > absX;
+    const swipeLeft = dx < -90 && absX > absY * 1.2;
+    const flickLeft = dx < -52 && elapsed < 260 && absX > absY;
+
+    resetGesture();
+    if (swipeDown || flickDown || swipeLeft || flickLeft) {
+      closeAll();
+    }
+  }
+
+  panelEntries.forEach(panel => {
+    panel.addEventListener('touchstart', e => onTouchStart(panel, e), { passive: true });
+    panel.addEventListener('touchend', e => onTouchEnd(panel, e), { passive: true });
+    panel.addEventListener('touchcancel', resetGesture, { passive: true });
+  });
+})();
 
 function syncPanelWithHash() {
   const panelFromHash = getPanelFromHash();
@@ -851,6 +948,39 @@ if (panelBackToTop) {
 // ESC key to close panels
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && current) closeAll();
+});
+
+// Focus trap: keep Tab/Shift+Tab inside the active panel.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || !current) return;
+
+  const panel = panels[current];
+  if (!panel || panel.getAttribute('aria-hidden') === 'true') return;
+
+  const focusables = getPanelFocusableElements(panel);
+  if (focusables.length === 0) {
+    e.preventDefault();
+    panel.focus();
+    return;
+  }
+
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  const active = document.activeElement;
+  const activeInsidePanel = panel.contains(active);
+
+  if (e.shiftKey) {
+    if (!activeInsidePanel || active === first) {
+      e.preventDefault();
+      last.focus();
+    }
+    return;
+  }
+
+  if (!activeInsidePanel || active === last) {
+    e.preventDefault();
+    first.focus();
+  }
 });
 
 // Keyboard shortcuts: P = Projects, I = Info, C = Contact.
@@ -962,11 +1092,27 @@ syncPanelWithHash();
   applyEmailLink();
 
   if (emailLink) {
-    const emailLinkObserver = new MutationObserver(() => {
+    let emailLinkObserver = null;
+
+    const maybeDisconnectEmailObserver = () => {
+      if (!emailLinkObserver) return;
       const href = emailLink.getAttribute('href') || '';
-      if (href.includes('/cdn-cgi/l/email-protection')) applyEmailLink();
-    });
-    emailLinkObserver.observe(emailLink, { attributes: true, attributeFilter: ['href'] });
+      if (href.startsWith('mailto:')) {
+        emailLinkObserver.disconnect();
+        emailLinkObserver = null;
+      }
+    };
+
+    const href = emailLink.getAttribute('href') || '';
+    if (!href.startsWith('mailto:')) {
+      emailLinkObserver = new MutationObserver(() => {
+        const nextHref = emailLink.getAttribute('href') || '';
+        if (nextHref.includes('/cdn-cgi/l/email-protection')) applyEmailLink();
+        maybeDisconnectEmailObserver();
+      });
+      emailLinkObserver.observe(emailLink, { attributes: true, attributeFilter: ['href'] });
+      maybeDisconnectEmailObserver();
+    }
   }
 
   function bindCopyButton(button, valueAttr, label) {

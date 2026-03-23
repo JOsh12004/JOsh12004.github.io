@@ -22,7 +22,15 @@
   <!-- Preconnect to Google Fonts for faster loading -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet" />
+  <link
+    rel="preload"
+    as="style"
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'"
+  />
+  <noscript>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet" />
+  </noscript>
   <link rel="stylesheet" href="style.css" />
   <!-- Restore theme before render to prevent flash.
        Priority: 1) saved preference, 2) OS dark mode, 3) default light -->
@@ -39,8 +47,78 @@
 </head>
 <body>
 
+  <noscript>
+    <style>
+      .intro-overlay,
+      .sidebar,
+      .frame,
+      .blob,
+      #grain,
+      .cursor,
+      .content-panel,
+      .panel-back-to-top,
+      .theme-wipe,
+      .copy-toast {
+        display: none !important;
+      }
+
+      .main {
+        position: static !important;
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        bottom: auto !important;
+        padding: 28px 20px !important;
+      }
+
+      .noscript-fallback {
+        margin-top: 24px;
+        border-top: 1px solid #c8c4be;
+        padding-top: 20px;
+      }
+
+      .noscript-fallback h2 {
+        font-family: 'DM Serif Display', serif;
+        font-weight: 400;
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+
+      .noscript-fallback p {
+        font-size: 14px;
+        line-height: 1.7;
+        margin-bottom: 14px;
+      }
+
+      .noscript-fallback ul {
+        margin-left: 18px;
+        margin-bottom: 14px;
+      }
+
+      .noscript-fallback li {
+        margin-bottom: 8px;
+      }
+
+      .noscript-fallback a {
+        color: #111;
+      }
+    </style>
+
+    <section class="noscript-fallback" aria-label="No JavaScript fallback">
+      <h2>JavaScript is disabled</h2>
+      <p>This portfolio has interactive panels that require JavaScript. You can still access the main details below.</p>
+      <ul>
+        <li>Email: <a href="mailto:jsshdeus@gmail.com">jsshdeus@gmail.com</a></li>
+        <li>Phone: <a href="tel:+639366967362">+63 9366967362</a></li>
+        <li>GitHub: <a href="https://github.com/JOsh12004" target="_blank" rel="noopener noreferrer">github.com/JOsh12004</a></li>
+        <li>LinkedIn: <a href="https://linkedin.com/in/joshdeus" target="_blank" rel="noopener noreferrer">linkedin.com/in/joshdeus</a></li>
+        <li>Resume: <a href="Deus_Resume.pdf" target="_blank" rel="noopener noreferrer">Deus_Resume.pdf</a></li>
+      </ul>
+    </section>
+  </noscript>
+
   <!-- Custom cursor -->
-  <div class="cursor" id="cursor"></div>
+  <div class="cursor" id="cursor" aria-hidden="true"></div>
 
   <!-- Intro overlay — dismissed by click or keypress -->
   <div class="intro-overlay" id="introOverlay">
@@ -49,13 +127,13 @@
   </div>
 
   <!-- Outer frame border -->
-  <div class="frame"></div>
+  <div class="frame" aria-hidden="true"></div>
 
   <!-- Grain texture canvas -->
-  <canvas id="grain"></canvas>
+  <canvas id="grain" aria-hidden="true"></canvas>
 
   <!-- Soft radial blob -->
-  <div class="blob"></div>
+  <div class="blob" aria-hidden="true"></div>
 
   <!-- ══════════════════════════════
        SIDEBAR
@@ -71,13 +149,16 @@
     <!-- Navigation -->
     <nav class="sidebar-nav" aria-label="Primary">
       <button class="nav-link" id="link-projects" aria-expanded="false" aria-controls="panel-projects">
-        Projects <span class="nav-arrow" aria-hidden="true">→</span>
+        <span class="nav-label">Projects</span>
+        <span class="nav-arrow" aria-hidden="true">→</span>
       </button>
       <button class="nav-link" id="link-info" aria-expanded="false" aria-controls="panel-info">
-        Info <span class="nav-arrow" aria-hidden="true">→</span>
+        <span class="nav-label">Info</span>
+        <span class="nav-arrow" aria-hidden="true">→</span>
       </button>
       <button class="nav-link" id="link-contact" aria-expanded="false" aria-controls="panel-contact">
-        Contact <span class="nav-arrow" aria-hidden="true">→</span>
+        <span class="nav-label">Contact</span>
+        <span class="nav-arrow" aria-hidden="true">→</span>
       </button>
     </nav>
 
@@ -131,10 +212,11 @@
     <div class="panel-header">
       <h2 class="panel-heading" id="panel-projects-title">Selected Work</h2>
       <div class="panel-actions">
-        <button class="panel-close" data-close>Close <span aria-hidden="true">✕</span></button>
+        <button class="panel-close" data-close aria-label="Close Projects panel">Close <span aria-hidden="true">✕</span></button>
         <span class="panel-shortcut-hint" aria-hidden="true">Esc to close</span>
       </div>
     </div>
+    <span class="panel-scroll-hint-text" aria-hidden="true">Scroll down ↓</span>
     <ul class="project-list">
       <li class="project-item">
         <a href="https://github.com/JOsh12004" target="_blank" rel="me noopener noreferrer" class="project-link">
@@ -225,10 +307,11 @@
     <div class="panel-header">
       <h2 class="panel-heading" id="panel-info-title">About</h2>
       <div class="panel-actions">
-        <button class="panel-close" data-close>Close <span aria-hidden="true">✕</span></button>
+        <button class="panel-close" data-close aria-label="Close Info panel">Close <span aria-hidden="true">✕</span></button>
         <span class="panel-shortcut-hint" aria-hidden="true">Esc to close</span>
       </div>
     </div>
+    <span class="panel-scroll-hint-text" aria-hidden="true">Scroll down ↓</span>
     <div class="info-grid">
       <div class="info-section">
         <h3>Background</h3>
@@ -278,10 +361,11 @@
     <div class="panel-header">
       <h2 class="panel-heading" id="panel-contact-title">Get in Touch</h2>
       <div class="panel-actions">
-        <button class="panel-close" data-close>Close <span aria-hidden="true">✕</span></button>
+        <button class="panel-close" data-close aria-label="Close Contact panel">Close <span aria-hidden="true">✕</span></button>
         <span class="panel-shortcut-hint" aria-hidden="true">Esc to close</span>
       </div>
     </div>
+    <span class="panel-scroll-hint-text" aria-hidden="true">Scroll down ↓</span>
     <ul class="contact-list">
       <li class="contact-item">
         <div class="contact-row contact-row-email">

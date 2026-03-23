@@ -8,8 +8,6 @@
   --fg: #111;
   --fg-muted: #666;
   --border: #c8c4be;
-  --nav-hover-bg: rgba(17, 17, 17, 0.07);
-  --nav-active-bg: rgba(17, 17, 17, 0.11);
   --sidebar-w: 200px;
   --grain-opacity: 0.55;
 }
@@ -23,8 +21,6 @@ html {
   --fg: #e8e4df;
   --fg-muted: #888;
   --border: #2a2825;
-  --nav-hover-bg: rgba(232, 228, 223, 0.12);
-  --nav-active-bg: rgba(232, 228, 223, 0.18);
   --grain-opacity: 0.35;
 }
 
@@ -362,16 +358,22 @@ html, body {
   animation: fadeUp 0.8s forwards;
   user-select: none;
 }
+
+.nav-label {
+  display: inline-block;
+  transition: opacity 0.18s ease, max-width 0.2s ease;
+  max-width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+}
 .nav-link:nth-child(1) { animation-delay: 0.48s; }
 .nav-link:nth-child(2) { animation-delay: 0.58s; }
 .nav-link:nth-child(3) { animation-delay: 0.68s; }
 
 .nav-link:hover {
-  background: var(--nav-hover-bg);
   background: color-mix(in srgb, var(--fg) 7%, transparent);
 }
 .nav-link.active {
-  background: var(--nav-active-bg);
   background: color-mix(in srgb, var(--fg) 11%, transparent);
 }
 
@@ -383,10 +385,19 @@ html, body {
   opacity: 0;
   transition: opacity 0.2s, transform 0.22s;
 }
-.nav-link:hover .nav-arrow,
 .nav-link.active .nav-arrow {
   opacity: 1;
   transform: translateX(0);
+  margin-left: 0;
+}
+
+.nav-link.active .nav-label {
+  opacity: 0;
+  max-width: 0;
+}
+
+.nav-link.active {
+  gap: 0;
 }
 
 /* ══════════════════════════════
@@ -518,7 +529,7 @@ html, body {
   color: var(--fg);
 }
 .bio-cta:active {
-  transform: translateY(1px) scale(0.985);
+  transform: translate(var(--magnetic-x, 0px), calc(var(--magnetic-y, 0px) + 1px)) scale(0.985);
 }
 .resume-cta {
   min-width: 102px;
@@ -575,8 +586,7 @@ html, body {
   pointer-events: none;
   transition: opacity 0.22s ease;
 }
-.content-panel::before {
-  content: 'Scroll down ↓';
+.panel-scroll-hint-text {
   position: absolute;
   right: 22px;
   bottom: 12px;
@@ -593,7 +603,7 @@ html, body {
 .content-panel.panel-scroll-hint::after {
   opacity: 0.8;
 }
-.content-panel.panel-scroll-hint::before {
+.content-panel.panel-scroll-hint .panel-scroll-hint-text {
   opacity: 0.78;
   transform: translateY(0);
 }
@@ -889,14 +899,14 @@ html, body {
   z-index: 45;
   opacity: 0;
   pointer-events: none;
-  transform: translateY(8px);
+  transform: translate(var(--magnetic-x, 0px), var(--magnetic-y, 0px)) translateY(8px);
   transition: opacity 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
 }
 
 .panel-back-to-top.visible {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+  transform: translate(var(--magnetic-x, 0px), var(--magnetic-y, 0px)) translateY(0);
 }
 
 .panel-back-to-top:hover {
@@ -905,7 +915,17 @@ html, body {
 
 /* Subtle GPU hint for magnetic hover movement targets. */
 .magnetic-target {
-  will-change: translate;
+  --magnetic-x: 0px;
+  --magnetic-y: 0px;
+  will-change: transform;
+}
+
+.nav-link.magnetic-target,
+.panel-close.magnetic-target,
+.toggle-track.magnetic-target,
+.copy-email-btn.magnetic-target,
+.bio-cta.magnetic-target:not(:active) {
+  transform: translate(var(--magnetic-x), var(--magnetic-y));
 }
 
 /* ══════════════════════════════
