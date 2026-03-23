@@ -591,7 +591,7 @@ html, body {
   right: 22px;
   bottom: 12px;
   z-index: 3;
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--fg-muted);
@@ -720,7 +720,7 @@ html, body {
 }
 .project-name { font-size: 15px; font-weight: 500; }
 .project-badge {
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--fg);
