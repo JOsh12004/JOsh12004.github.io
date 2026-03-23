@@ -19,10 +19,16 @@
 
   // Use event delegation so dynamically shown panels are covered
   document.addEventListener('mouseover', e => {
-    if (e.target.closest(hoverSelector)) cursor.classList.add('hover');
+    if (e.target.closest(hoverSelector)) {
+      _cursorIsHovering = true;
+      cursor.classList.add('hover');
+    }
   });
   document.addEventListener('mouseout', e => {
-    if (e.target.closest(hoverSelector)) cursor.classList.remove('hover');
+    if (e.target.closest(hoverSelector)) {
+      _cursorIsHovering = false;
+      cursor.classList.remove('hover');
+    }
   });
 })();
 
@@ -31,9 +37,13 @@ const PERF = {
   saveData: !!(navigator.connection && navigator.connection.saveData),
   lowPower:
     !!(navigator.connection && navigator.connection.saveData) ||
-    (navigator.deviceMemory || 4) <= 4 ||
+    (navigator.deviceMemory !== undefined && navigator.deviceMemory <= 4) ||
     (navigator.hardwareConcurrency || 4) <= 4,
 };
+
+// Shared hover state — used by cursor trail to shift color on interactive elements
+let _cursorIsHovering = false;
+
 
 /* ══════════════════════════════
    MOUSE-REACTIVE BLOB
@@ -288,7 +298,7 @@ const PERF = {
   canvas.tabIndex = -1;
 
   const isDarkFn = () => document.documentElement.dataset.theme === 'dark';
-  canvas.style.cssText = `position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;mix-blend-mode:${isDarkFn() ? 'screen' : 'multiply'};`;
+  canvas.style.cssText = `position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:45;mix-blend-mode:${isDarkFn() ? 'screen' : 'multiply'};`;
   document.body.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
@@ -318,14 +328,14 @@ const PERF = {
   let lastSpawnX = -999;
   let lastSpawnY = -999;
 
-  function spawnDust(x, y, timestamp) {
+  function spawnDust(x, y, timestamp, force = false) {
     if (document.hidden) return;
 
     const dx = x - lastSpawnX;
     const dy = y - lastSpawnY;
     const movedEnough = dx * dx + dy * dy >= SPAWN_DIST_SQ;
     const waitedEnough = (timestamp - lastSpawnTime) >= SPAWN_INTERVAL;
-    if (!movedEnough || !waitedEnough) return;
+    if (!force && (!movedEnough || !waitedEnough)) return;
 
     lastSpawnX = x;
     lastSpawnY = y;
@@ -337,10 +347,19 @@ const PERF = {
       const speed = Math.random() * (LOW_POWER ? 0.7 : 1.15) + 0.16;
       const maxLife = Math.random() * (LOW_POWER ? 30 : 42) + (LOW_POWER ? 26 : 34);
 
-      // Rich amber-gold palette with slight copper variation.
-      const r = Math.floor(Math.random() * 48 + 198);
-      const g = Math.floor(Math.random() * 56 + 146);
-      const b = Math.floor(Math.random() * 34 + 68);
+      // Shift palette: warm amber at rest → cool silver-blue on interactive hover
+      let r, g, b;
+      if (_cursorIsHovering) {
+        // Cool silver-blue — interactive hover
+        r = Math.floor(Math.random() * 30 + 160);
+        g = Math.floor(Math.random() * 40 + 180);
+        b = Math.floor(Math.random() * 50 + 200);
+      } else {
+        // Warm amber-gold — resting
+        r = Math.floor(Math.random() * 48 + 198);
+        g = Math.floor(Math.random() * 56 + 146);
+        b = Math.floor(Math.random() * 34 + 68);
+      }
 
       particles.push({
         x,
@@ -425,6 +444,11 @@ const PERF = {
   window.addEventListener('mousemove', e => {
     spawnDust(e.clientX, e.clientY, performance.now());
   }, { passive: true });
+
+  window.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    spawnDust(e.clientX, e.clientY, performance.now(), true);
+  }, { passive: true });
 })();
 
 /* ══════════════════════════════
@@ -437,6 +461,16 @@ const PERF = {
 (function () {
   const overlay = document.getElementById('introOverlay');
   if (!overlay) return; // Guard: overlay not found, exit gracefully
+  const introName = document.getElementById('introOverlayTitle');
+  const supportsInert = 'inert' in HTMLElement.prototype;
+  const INTRO_FOCUSABLE_SELECTOR = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(',');
 
   const introLockTargets = [
     document.querySelector('.sidebar'),
@@ -444,23 +478,59 @@ const PERF = {
   ].filter(Boolean);
   const introLockState = new Map();
 
+  function trapOverlayFocus(e) {
+    if (!overlay.parentNode) return;
+    if (overlay.contains(e.target)) return;
+    e.stopPropagation();
+    overlay.focus();
+  }
+
   function setIntroBackgroundLocked(locked) {
     introLockTargets.forEach(el => {
       if (locked) {
         if (!introLockState.has(el)) {
+          const focusables = Array.from(el.querySelectorAll(INTRO_FOCUSABLE_SELECTOR)).map(node => ({
+            node,
+            hadTabIndex: node.hasAttribute('tabindex'),
+            tabIndex: node.getAttribute('tabindex'),
+          }));
+
           introLockState.set(el, {
             inert: el.hasAttribute('inert'),
             ariaHidden: el.getAttribute('aria-hidden'),
+            pointerEvents: el.style.pointerEvents,
+            focusables,
           });
         }
-        el.setAttribute('inert', '');
+        if (supportsInert) {
+          el.setAttribute('inert', '');
+        } else {
+          el.style.pointerEvents = 'none';
+          const state = introLockState.get(el);
+          if (state) {
+            state.focusables.forEach(({ node }) => {
+              node.setAttribute('tabindex', '-1');
+            });
+          }
+        }
         el.setAttribute('aria-hidden', 'true');
         return;
       }
 
       const prev = introLockState.get(el);
       if (!prev) return;
-      if (!prev.inert) el.removeAttribute('inert');
+      if (supportsInert) {
+        if (!prev.inert) el.removeAttribute('inert');
+      } else {
+        el.style.pointerEvents = prev.pointerEvents;
+        prev.focusables.forEach(({ node, hadTabIndex, tabIndex }) => {
+          if (!hadTabIndex) {
+            node.removeAttribute('tabindex');
+            return;
+          }
+          node.setAttribute('tabindex', tabIndex || '0');
+        });
+      }
       if (prev.ariaHidden === null) {
         el.removeAttribute('aria-hidden');
       } else {
@@ -471,12 +541,55 @@ const PERF = {
   }
 
   setIntroBackgroundLocked(true);
+  document.addEventListener('focusin', trapOverlayFocus, true);
   overlay.focus();
+
+  let typeTimer = null;
+
+  function startIntroTyping() {
+    if (!introName) return;
+
+    const fullName = (introName.textContent || '').trim();
+    if (!fullName) return;
+
+    // Keep full text available to assistive technologies while typing.
+    introName.setAttribute('aria-label', fullName);
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      introName.textContent = fullName;
+      return;
+    }
+
+    introName.textContent = '';
+    let index = 0;
+    const TYPE_START_DELAY_MS = 180;
+    const TYPE_BASE_SPEED_MS = 52;
+    const TYPE_JITTER_MS = 38;
+
+    function typeNextChar() {
+      if (!overlay.parentNode) return;
+
+      index += 1;
+      introName.textContent = fullName.slice(0, index);
+
+      if (index >= fullName.length) {
+        typeTimer = null;
+        return;
+      }
+
+      typeTimer = setTimeout(typeNextChar, TYPE_BASE_SPEED_MS + Math.random() * TYPE_JITTER_MS);
+    }
+
+    typeTimer = setTimeout(typeNextChar, TYPE_START_DELAY_MS);
+  }
+
+  startIntroTyping();
   
   let dismissed = false;
 
   function removeOverlay() {
     if (!overlay.parentNode) return;
+    document.removeEventListener('focusin', trapOverlayFocus, true);
     setIntroBackgroundLocked(false);
     overlay.remove();
     document.dispatchEvent(new CustomEvent('intro-dismissed'));
@@ -485,6 +598,11 @@ const PERF = {
   function dismiss() {
     if (dismissed) return;
     dismissed = true;
+
+    if (typeTimer) {
+      clearTimeout(typeTimer);
+      typeTimer = null;
+    }
 
     // Reduced-motion: skip transition, remove immediately
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -818,11 +936,6 @@ panelEntries.forEach(panel => {
   panel.tabIndex = -1;
 });
 
-const backgroundRegions = [
-  // Keep sidebar interactive so users can switch panels directly.
-  document.querySelector('.main'),
-];
-
 let current = null;
 let pendingPanelFromHash = null;
 const panelBackToTop = document.getElementById('panelBackToTop');
@@ -879,17 +992,6 @@ function getPanelFromHash(hash = window.location.hash) {
   return HASH_TO_PANEL[key] || null;
 }
 
-function setBackgroundInert(disabled) {
-  // Non-modal drawer behavior: keep background content interactive.
-  if (disabled) return;
-  backgroundRegions.forEach(region => {
-    if (!region) return;
-    region.removeAttribute('inert');
-    region.removeAttribute('aria-hidden');
-    region.classList.remove('panel-lock');
-  });
-}
-
 function setNavCurrent(name) {
   Object.keys(navLinks).forEach(key => {
     if (key === name) {
@@ -922,7 +1024,6 @@ function openPanel(name, options = {}) {
     navLinks[name].classList.remove('active');
     navLinks[name].setAttribute('aria-expanded', 'false');
     setNavCurrent(null);
-    setBackgroundInert(false);
     current = null;
     syncDocumentTitle(null);
     updateBackToTopVisibility();
@@ -938,7 +1039,6 @@ function openPanel(name, options = {}) {
   navLinks[name].setAttribute('aria-expanded', 'true');
   setNavCurrent(name);
   current = name;
-  setBackgroundInert(true);
   syncDocumentTitle(name);
 
   requestAnimationFrame(() => {
@@ -978,7 +1078,6 @@ function closeAll(options = {}) {
     navLinks[k].removeAttribute('aria-current');
   });
 
-  setBackgroundInert(false);
   current = null;
   syncDocumentTitle(null);
   updateBackToTopVisibility();
@@ -1190,6 +1289,60 @@ document.addEventListener('keydown', e => {
     first.focus();
   }
 });
+
+/* ══════════════════════════════
+   KEYBOARD SHORTCUT HINT
+   On first visit, show a floating hint for P / I / C after the
+   intro overlay is dismissed. Auto-hides after 3 seconds.
+══════════════════════════════ */
+(function () {
+  const STORAGE_KEY = 'shortcut-hint-seen';
+
+  function hasSeenHint() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === '1';
+    } catch {
+      return true;
+    }
+  }
+
+  function markHintSeen() {
+    try {
+      localStorage.setItem(STORAGE_KEY, '1');
+    } catch {
+      // Ignore storage failures and avoid retrying in this session.
+    }
+  }
+
+  function showHint() {
+    if (hasSeenHint()) return;
+    markHintSeen();
+
+    const hint = document.createElement('div');
+    hint.className = 'keyboard-shortcut-tooltip';
+    hint.setAttribute('role', 'status');
+    hint.setAttribute('aria-live', 'polite');
+    hint.textContent = 'Tip: Press P, I, or C to open panels';
+    document.body.appendChild(hint);
+
+    requestAnimationFrame(() => {
+      hint.classList.add('visible');
+    });
+
+    setTimeout(() => {
+      hint.classList.remove('visible');
+      setTimeout(() => hint.remove(), 260);
+    }, 3000);
+  }
+
+  if (document.getElementById('introOverlay')) {
+    document.addEventListener('intro-dismissed', showHint, { once: true });
+    return;
+  }
+
+  // Fallback if intro overlay is not present.
+  setTimeout(showHint, 250);
+})();
 
 // Keyboard shortcuts: P = Projects, I = Info, C = Contact.
 document.addEventListener('keydown', e => {
