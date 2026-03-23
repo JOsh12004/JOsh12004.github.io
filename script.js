@@ -157,29 +157,29 @@ const PERF = {
 })();
 
 /* ══════════════════════════════
-   MOUSE TRAIL — GRAIN PARTICLE BURST
-   Skipped entirely under prefers-reduced-motion: the canvas is
-   never created, so there is zero runtime cost for those users.
+  MOUSE TRAIL — GRAIN DUST
+  Tiny warm-toned particles spawn along cursor movement,
+  then drift and gently scatter before fading out.
 ══════════════════════════════ */
 (function () {
-  // Bail out before creating any DOM or listeners if the user
-  // has requested reduced motion at the OS/browser level.
   if (PERF.reducedMotion) return;
+
   const canvas = document.createElement('canvas');
   canvas.setAttribute('aria-hidden', 'true');
   canvas.tabIndex = -1;
+
   const isDarkFn = () => document.documentElement.dataset.theme === 'dark';
   canvas.style.cssText = `position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;mix-blend-mode:${isDarkFn() ? 'screen' : 'multiply'};`;
   document.body.appendChild(canvas);
-  const ctx = canvas.getContext('2d');
 
+  const ctx = canvas.getContext('2d');
   const observer = new MutationObserver(() => {
     canvas.style.mixBlendMode = isDarkFn() ? 'screen' : 'multiply';
   });
   observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   function resize() {
-    canvas.width  = window.innerWidth;
+    canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   }
   resize();
@@ -189,34 +189,60 @@ const PERF = {
   let loopRunning = false;
   const LOW_POWER = PERF.lowPower || PERF.saveData;
   const FRAME_MS = LOW_POWER ? 33 : 16;
+  const MAX_PARTICLES = LOW_POWER ? 140 : 280;
+  const SPAWN_DIST = LOW_POWER ? 8 : 5;
+  const SPAWN_DIST_SQ = SPAWN_DIST * SPAWN_DIST;
+  const SPAWN_INTERVAL = LOW_POWER ? 30 : 14;
+
   let lastFrameTime = 0;
+  let lastSpawnTime = 0;
+  let lastSpawnX = -999;
+  let lastSpawnY = -999;
 
-  // Distance gate — only spawn when the cursor has moved at least
-  // SPAWN_DIST pixels since the last spawn. This avoids flooding the
-  // particle array during slow/hover micro-movements.
-  const SPAWN_DIST = LOW_POWER ? 9 : 5;
-  const SPAWN_DIST_SQ = SPAWN_DIST * SPAWN_DIST; // compare squared, no sqrt needed
-  let lastSpawnX = -999, lastSpawnY = -999;
-
-  function spawnParticles(x, y) {
+  function spawnDust(x, y, timestamp) {
     if (document.hidden) return;
 
-    const dx = x - lastSpawnX, dy = y - lastSpawnY;
-    if (dx * dx + dy * dy < SPAWN_DIST_SQ) return; // cursor barely moved, skip
-    lastSpawnX = x; lastSpawnY = y;
+    const dx = x - lastSpawnX;
+    const dy = y - lastSpawnY;
+    const movedEnough = dx * dx + dy * dy >= SPAWN_DIST_SQ;
+    const waitedEnough = (timestamp - lastSpawnTime) >= SPAWN_INTERVAL;
+    if (!movedEnough || !waitedEnough) return;
 
-    const isDark = isDarkFn();
-    const count = LOW_POWER ? 6 : 10;
+    lastSpawnX = x;
+    lastSpawnY = y;
+    lastSpawnTime = timestamp;
+
+    const count = LOW_POWER ? 4 : 7;
     for (let i = 0; i < count; i++) {
-      const angle  = Math.random() * Math.PI * 2;
-      const speed  = Math.random() * (LOW_POWER ? 1.4 : 2.5) + 0.5;
-      const size   = Math.random() * (LOW_POWER ? 1.5 : 2.5) + 0.5;
-      const life   = Math.random() * (LOW_POWER ? 18 : 30) + (LOW_POWER ? 12 : 20);
-      const brightness = isDark
-        ? Math.floor(Math.random() * 80 + 140)
-        : Math.floor(Math.random() * 60);
-      particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, size, life, maxLife: life, brightness });
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * (LOW_POWER ? 0.7 : 1.15) + 0.16;
+      const maxLife = Math.random() * (LOW_POWER ? 30 : 42) + (LOW_POWER ? 26 : 34);
+
+      // Rich amber-gold palette with slight copper variation.
+      const r = Math.floor(Math.random() * 48 + 198);
+      const g = Math.floor(Math.random() * 56 + 146);
+      const b = Math.floor(Math.random() * 34 + 68);
+
+      particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        driftX: (Math.random() - 0.5) * (LOW_POWER ? 0.06 : 0.1),
+        driftY: (Math.random() - 0.5) * (LOW_POWER ? 0.05 : 0.08),
+        size: Math.random() * (LOW_POWER ? 0.75 : 1.1) + 0.45,
+        life: maxLife,
+        maxLife,
+        r,
+        g,
+        b,
+      });
     }
+
+    if (particles.length > MAX_PARTICLES) {
+      particles.splice(0, particles.length - MAX_PARTICLES);
+    }
+
     if (!loopRunning) {
       loopRunning = true;
       requestAnimationFrame(loop);
@@ -236,18 +262,33 @@ const PERF = {
     lastFrameTime = timestamp;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
-      p.x += p.vx; p.y += p.vy;
-      p.vx *= 0.92; p.vy *= 0.92;
-      p.life--;
-      if (p.life <= 0) { particles.splice(i, 1); continue; }
-      const alpha = (p.life / p.maxLife) * 0.7;
+      p.life -= 1;
+
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+
+      // Drift + soft scatter so dust feels alive but subtle.
+      p.vx += p.driftX * 0.04;
+      p.vy += p.driftY * 0.04;
+      p.vx *= 0.978;
+      p.vy *= 0.982;
+      p.x += p.vx + (Math.random() - 0.5) * 0.08;
+      p.y += p.vy + (Math.random() - 0.5) * 0.08;
+
+      const lifeRatio = p.life / p.maxLife;
+      const alpha = lifeRatio * (LOW_POWER ? 0.58 : 0.7);
+
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${p.brightness},${p.brightness},${p.brightness},${alpha})`;
+      ctx.fillStyle = `rgba(${p.r},${p.g},${p.b},${alpha})`;
       ctx.fill();
     }
+
     if (particles.length > 0) {
       requestAnimationFrame(loop);
     } else {
@@ -262,7 +303,9 @@ const PERF = {
     loopRunning = false;
   });
 
-  window.addEventListener('mousemove', e => spawnParticles(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => {
+    spawnDust(e.clientX, e.clientY, performance.now());
+  }, { passive: true });
 })();
 
 /* ══════════════════════════════
