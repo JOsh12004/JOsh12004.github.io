@@ -6,7 +6,7 @@
 :root {
   --bg: #f0ede8;
   --fg: #111;
-  --fg-muted: #666;
+  --fg-muted: #5f5f5f;
   --border: #c8c4be;
   --sidebar-w: 200px;
   --grain-opacity: 0.55;
@@ -47,11 +47,12 @@ html, body {
    CUSTOM CURSOR
 ══════════════════════════════ */
 @media (pointer: fine) and (hover: hover) {
-  * { cursor: none !important; }
-  input, textarea { cursor: text !important; }
+  html.js-enabled * { cursor: none !important; }
+  html.js-enabled input,
+  html.js-enabled textarea { cursor: text !important; }
   /* Intro overlay needs pointer — must come after the wildcard rule
     and use !important to beat the specificity of * { cursor: none } */
-  .intro-overlay { cursor: pointer !important; }
+  html.js-enabled .intro-overlay { cursor: pointer !important; }
 }
 
 @media (pointer: coarse), (hover: none) {
@@ -412,7 +413,8 @@ html, body {
 .nav-link:hover {
   background: color-mix(in srgb, var(--fg) 7%, transparent);
 }
-.nav-link.active {
+.nav-link.active,
+.nav-link[aria-current="page"] {
   background: color-mix(in srgb, var(--fg) 11%, transparent);
 }
 
@@ -424,18 +426,21 @@ html, body {
   opacity: 0;
   transition: opacity 0.2s, transform 0.22s;
 }
-.nav-link.active .nav-arrow {
+.nav-link.active .nav-arrow,
+.nav-link[aria-current="page"] .nav-arrow {
   opacity: 1;
   transform: translateX(0);
   margin-left: 0;
 }
 
-.nav-link.active .nav-label {
+.nav-link.active .nav-label,
+.nav-link[aria-current="page"] .nav-label {
   opacity: 0;
   max-width: 0;
 }
 
-.nav-link.active {
+.nav-link.active,
+.nav-link[aria-current="page"] {
   gap: 0;
 }
 
@@ -1044,11 +1049,13 @@ html, body {
     padding: 7px 10px;
   }
 
-  .nav-link.active {
+  .nav-link.active,
+  .nav-link[aria-current="page"] {
     background: color-mix(in srgb, var(--fg) 10%, transparent);
   }
 
-  .nav-link.active::after {
+  .nav-link.active::after,
+  .nav-link[aria-current="page"]::after {
     content: '';
     position: absolute;
     left: 10px;

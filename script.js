@@ -887,6 +887,7 @@ const navLinks = {
   info:     document.getElementById('link-info'),
   contact:  document.getElementById('link-contact'),
 };
+const homeLink = document.getElementById('link-home');
 const panelEntries = Object.values(panels);
 const PANEL_HASH = {
   projects: '#projects',
@@ -993,6 +994,14 @@ function getPanelFromHash(hash = window.location.hash) {
 }
 
 function setNavCurrent(name) {
+  if (homeLink) {
+    if (!name) {
+      homeLink.setAttribute('aria-current', 'page');
+    } else {
+      homeLink.removeAttribute('aria-current');
+    }
+  }
+
   Object.keys(navLinks).forEach(key => {
     if (key === name) {
       navLinks[key].setAttribute('aria-current', 'page');
@@ -1079,6 +1088,7 @@ function closeAll(options = {}) {
   });
 
   current = null;
+  setNavCurrent(null);
   syncDocumentTitle(null);
   updateBackToTopVisibility();
   if (syncHash) setPanelHash(null);
@@ -1171,6 +1181,16 @@ function syncPanelWithHash() {
 Object.keys(navLinks).forEach(name => {
   navLinks[name].addEventListener('click', () => openPanel(name));
 });
+
+if (homeLink) {
+  homeLink.addEventListener('click', () => {
+    closeAll({ syncHash: false, restoreFocus: false });
+    setPanelHash(null);
+    if (window.location.hash !== '#home') {
+      history.replaceState(null, '', `${window.location.pathname}${window.location.search}#home`);
+    }
+  });
+}
 
 const bio = document.querySelector('.bio');
 document.querySelectorAll('.bio-cta[href^="#"]').forEach(link => {
@@ -1322,7 +1342,7 @@ document.addEventListener('keydown', e => {
     hint.className = 'keyboard-shortcut-tooltip';
     hint.setAttribute('role', 'status');
     hint.setAttribute('aria-live', 'polite');
-    hint.textContent = 'Tip: Press P, I, or C to open panels';
+    hint.textContent = 'Tip: Press H for Home, or P, I, C to open panels';
     document.body.appendChild(hint);
 
     requestAnimationFrame(() => {
@@ -1344,12 +1364,18 @@ document.addEventListener('keydown', e => {
   setTimeout(showHint, 250);
 })();
 
-// Keyboard shortcuts: P = Projects, I = Info, C = Contact.
+// Keyboard shortcuts: H = Home, P = Projects, I = Info, C = Contact.
 document.addEventListener('keydown', e => {
   if (e.defaultPrevented || e.repeat) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
 
   const key = e.key.toLowerCase();
+  if (key === 'h') {
+    if (document.getElementById('introOverlay')) return;
+    closeAll({ restoreFocus: false });
+    return;
+  }
+
   const keyToPanel = {
     p: 'projects',
     i: 'info',
